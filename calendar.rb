@@ -48,13 +48,38 @@ color_of_weekday_name = "000000"
 color_of_other_month_background = "f0f0f0"
 ### END Colors Magic Numbers
 
+class Calendar
+  def initialize(year, month)
+    @year  = year
+    @month = month
+  end
+
+  def first_of_month
+    @first_date ||= Date.new(@year, @month)
+  end
+
+  def last_of_month
+    last_of_month ||= if @month == 12
+      # The day before the first of next year.
+      Date.new(@year + 1, 1         ) - 1
+    else
+      # The day before the first of next month.
+      Date.new(@year    , @month + 1) - 1
+    end
+  end
+end
+
 ### Testing
 RUN_TEST = false
 if RUN_TEST
   require "minitest/autorun"
-  class Calendar < Minitest::Test
+  class CalendarTests < Minitest::Test
     def test_first_of_month
-      assert(false, "Not implemented")
+      assert(Calendar.new(2014, 11).first_of_month == Date.new(2014, 11, 1))
+    end
+
+    def test_last_of_month
+      assert(Calendar.new(2014, 11).last_of_month  == Date.new(2014, 11, 30))
     end
   end
   exit
