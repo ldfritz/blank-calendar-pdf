@@ -48,6 +48,19 @@ color_of_weekday_name = "000000"
 color_of_other_month_background = "f0f0f0"
 ### END Colors Magic Numbers
 
+### Testing
+RUN_TEST = false
+if RUN_TEST
+  require "minitest/autorun"
+  class Calendar < Minitest::Test
+    def test_first_of_month
+      assert(false, "Not implemented")
+    end
+  end
+  exit
+end
+### END Testing
+
 pdf = Prawn::Document.new(:page_size => page_size,
                           :page_layout => :landscape)
 
