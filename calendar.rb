@@ -7,28 +7,53 @@ require "prawn/measurement_extensions"
 
 ### About Script
 VERSION = "0.1.0"
-APPNAME = "calendar.rb"
+APPNAME = File.basename(__FILE__)
 ### END About Script
 
 ### Calendar Logic
 class Calendar
 
-  FONT = "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf"
-  DATE_FG    = "d9d9d9"
-  HEADING_FG = "000000"
-  OTHER_BG   = "f0f0f0"
+  FONT  = "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf"
+  BLACK = "000000"
+  GRAY  = "d9d9d9"
+  WHITE = "ffffff"
 
-  def initialize(year, month)
+  def initialize(year, month, page_size)
     @year  = year
     @month = month
+    @doc   = Prawn::Document.new(:page_size => page_size,
+                                 :page_layout => :landscape)
+    @doc.font FONT
+  end
+
+  def cell_coords(date)
+    x = cell_width * date.wday
+    y = (@doc.bounds.top - 1.in) - (cell_height * cell_row(date))
+    [x, y]
+  end
+
+  def cell_height
+    @cell_height ||= (@doc.bounds.top - 1.in) / number_of_weeks
+  end
+
+  def cell_row(date)
+    (date.mday + first_of_month.wday - 1) / 7
+  end
+
+  def cell_width
+    @cell_width ||= @doc.bounds.right / 7
   end
 
   def first_of_month
-    @first_date ||= Date.new(@year, @month)
+    @first_of_month ||= Date.new(@year, @month)
+  end
+
+  def font_size
+    @font_size ||= [cell_height, cell_width].sort.shift * 0.8
   end
 
   def last_of_month
-    last_of_month ||= if @month == 12
+    @last_of_month ||= if @month == 12
       # The day before the first of next year.
       Date.new(@year + 1, 1         ) - 1
     else
@@ -38,58 +63,45 @@ class Calendar
   end
 
   def number_of_weeks
-    ((last_of_month.mday + first_of_month.wday - 1) / 7) + 1
+    @number_of_weeks ||= cell_row(last_of_month) + 1
   end
 
-  def render_file(filename, page_size)
-    doc = Prawn::Document.new(:page_size => page_size,
-                              :page_layout => :landscape)
-
-    ### Config
-    cell_width  = doc.bounds.right / 7
-    cell_height = (doc.bounds.top - 1.in) / number_of_weeks
-    font_size   = (cell_height < cell_width ? cell_height : cell_width) * 0.8
-    doc.font FONT
-    ### END Config
-
+  def render_file(filename)
     ### Title
-    doc.bounding_box([0, doc.bounds.top],
-                     :width => doc.bounds.right,
-                     :height => 1.in) do
-      doc.text(first_of_month.strftime("%B %Y"),
-               :size => 0.75.in,
-               :color => HEADING_FG)
+    @doc.bounding_box([0, @doc.bounds.top],
+                      :width => @doc.bounds.right,
+                      :height => 1.in) do
+      @doc.text(first_of_month.strftime("%B %Y"),
+                :size => 0.75.in,
+                :color => BLACK)
     end
     ### END Title
 
     ### Weekday Labels
     %w[Sun Mon Tue Wed Thu Fri Sat].each_with_index do |label, i|
-      doc.bounding_box([(cell_width * i),
-                        (doc.bounds.top - 0.75.in)],
-                       :width => cell_width) do
-        doc.text(label,
-                 :size => 0.25.in,
-                 :color => HEADING_FG)
+      @doc.bounding_box([cell_width * i,
+                        @doc.bounds.top - 0.75.in],
+                        :width => cell_width) do
+        @doc.text(label,
+                  :size => 0.25.in,
+                  :color => BLACK)
       end
     end
     ### END Weekday Labels
 
     ### Dates
       (0...last_of_month.mday).each do |d|
-      date = first_of_month + d
-      x_coord = cell_width * date.wday
-      y_coord = doc.bounds.top - 1.in - (cell_height * ((date.mday + first_of_month.wday - 1) / 7))
-      doc.bounding_box([x_coord, y_coord],
-                       :width => cell_width,
-                       :height => cell_height) do
-
-        doc.stroke_bounds
-        doc.move_down 5
-        doc.text(date.mday.to_s,
-                 :size  => font_size,
-                 :align => :right,
-                 :color => DATE_FG)
-      end
+        date = first_of_month + d
+        @doc.bounding_box(cell_coords(date),
+                          :width => cell_width,
+                          :height => cell_height) do
+          @doc.stroke_bounds
+          @doc.move_down 5
+          @doc.text(date.mday.to_s,
+                   :size  => font_size,
+                   :align => :right,
+                   :color => GRAY)
+        end
       end
     ### END Dates
 
@@ -99,7 +111,7 @@ class Calendar
     ### Trailing Dates
     ### END Trailing Dates
 
-    doc.render_file(filename)
+    @doc.render_file(filename)
   end
 end
 
@@ -158,8 +170,8 @@ end
 
   ### Destination Filename
 options[:filename] = "%d-%02d-%s.pdf" % [options[:year],
-                                        options[:month],
-                                        options[:page_size]]
+                                         options[:month],
+                                         options[:page_size].downcase]
 ### END ARGV Parsing
 
 ### Help Output
@@ -170,6 +182,8 @@ end
 ### Help Output
 
 ### Execution
-calendar = Calendar.new(options[:year], options[:month])
-calendar.render_file(options[:filename], options[:page_size])
+calendar = Calendar.new(options[:year],
+                        options[:month],
+                        options[:page_size])
+calendar.render_file(options[:filename])
 ### END Execution
