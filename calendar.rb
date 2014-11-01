@@ -3,25 +3,63 @@
 require "optparse"
 require "date"
 require "prawn"
+require "prawn/measurement_extensions"
 
 ### About Script
 VERSION = "0.1.0"
-APPNAME = "calendar.rb"
+APPNAME = File.basename(__FILE__)
 ### END About Script
 
 ### Calendar Logic
 class Calendar
-  def initialize(year, month)
+
+  FONT  = "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf"
+  BLACK = "000000"
+  GRAY  = "d9d9d9"
+  WHITE = "ffffff"
+
+  def initialize(year, month, page_size)
     @year  = year
     @month = month
+    @doc   = Prawn::Document.new(:page_size => page_size,
+                                 :page_layout => :landscape)
+    @doc.font FONT
+  end
+
+  def cell_coords(date)
+    x = cell_width * date.wday
+    y = (@doc.bounds.top - 1.in) - (cell_height * cell_row(date))
+    [x, y]
+  end
+
+  def cell_height
+    @cell_height ||= (@doc.bounds.top - 1.in) / number_of_weeks
+  end
+
+  def cell_row(date)
+    if    date < first_of_month
+      cell_row(first_of_month)
+    elsif date > last_of_month
+      cell_row(last_of_month)
+    else
+      (date.mday + first_of_month.wday - 1) / 7
+    end
+  end
+
+  def cell_width
+    @cell_width ||= @doc.bounds.right / 7
   end
 
   def first_of_month
-    @first_date ||= Date.new(@year, @month)
+    @first_of_month ||= Date.new(@year, @month)
+  end
+
+  def font_size
+    @font_size ||= [cell_height, cell_width].sort.shift * 0.8
   end
 
   def last_of_month
-    last_of_month ||= if @month == 12
+    @last_of_month ||= if @month == 12
       # The day before the first of next year.
       Date.new(@year + 1, 1         ) - 1
     else
@@ -29,8 +67,90 @@ class Calendar
       Date.new(@year    , @month + 1) - 1
     end
   end
+
+  def number_of_weeks
+    @number_of_weeks ||= cell_row(last_of_month) + 1
+  end
+
+  def render_file(filename)
+    ### Title
+    @doc.bounding_box([0, @doc.bounds.top],
+                      :width => @doc.bounds.right,
+                      :height => 1.in) do
+      @doc.text(first_of_month.strftime("%B %Y"),
+                :size => 0.75.in,
+                :color => BLACK)
+    end
+    ### END Title
+
+    ### Weekday Labels
+    %w[Sun Mon Tue Wed Thu Fri Sat].each_with_index do |label, i|
+      @doc.bounding_box([cell_width * i,
+                        @doc.bounds.top - 0.75.in],
+                        :width => cell_width) do
+        @doc.text(label,
+                  :size => 0.25.in,
+                  :color => BLACK)
+      end
+    end
+    ### END Weekday Labels
+
+    ### Dates
+      (0...last_of_month.mday).each do |d|
+        date = first_of_month + d
+        @doc.bounding_box(cell_coords(date),
+                          :width => cell_width,
+                          :height => cell_height) do
+          @doc.stroke_bounds
+          @doc.move_down 5
+          @doc.text(date.mday.to_s,
+                   :size  => font_size,
+                   :align => :right,
+                   :color => GRAY)
+        end
+      end
+    ### END Dates
+
+    ### Leading Dates
+    ((first_of_month.wday * -1)...0).each do |d|
+      date = first_of_month + d
+      @doc.bounding_box(cell_coords(date),
+                        :width => cell_width,
+                        :height => cell_height) do
+        @doc.fill_color GRAY
+        @doc.fill_rectangle([0, @doc.bounds.top], @doc.bounds.right, @doc.bounds.top)
+        @doc.stroke_bounds
+        @doc.move_down 5
+        @doc.text(date.mday.to_s,
+                 :size  => font_size,
+                 :align => :right,
+                 :color => WHITE)
+      end
+    end
+    ### END Leading Dates
+    
+    ### Trailing Dates
+    #!! DUPLICATION
+    (1..(6 - last_of_month.wday)).each do |d|
+      date = last_of_month + d
+      @doc.bounding_box(cell_coords(date),
+                        :width => cell_width,
+                        :height => cell_height) do
+        @doc.fill_color GRAY
+        @doc.fill_rectangle([0, @doc.bounds.top], @doc.bounds.right, @doc.bounds.top)
+        @doc.stroke_bounds
+        @doc.move_down 5
+        @doc.text(date.mday.to_s,
+                 :size  => font_size,
+                 :align => :right,
+                 :color => WHITE)
+      end
+    end
+    ### END Trailing Dates
+
+    @doc.render_file(filename)
+  end
 end
-### END Calendar Logic
 
 ### Option Parsing
 options = {}
@@ -72,16 +192,23 @@ end
 ### END Tests
 
 ### ARGV Parsing
+  ### Date
 options[:year]  = ARGV[0].to_i
 options[:month] = ARGV[1].to_i
 unless options[:year] > -1 and options[:month] >= 1 and options[:month] <= 12
   options[:show_help] = true
 end
 
+  ### Size
 options[:page_size] = ARGV[2] && ARGV[2].upcase || "LETTER"
 unless %w[LETTER LEGAL TABLOID].include?(options[:page_size])
   options[:show_help] = true
 end
+
+  ### Destination Filename
+options[:filename] = "%d-%02d-%s.pdf" % [options[:year],
+                                         options[:month],
+                                         options[:page_size].downcase]
 ### END ARGV Parsing
 
 ### Help Output
@@ -91,74 +218,9 @@ if options[:show_help]
 end
 ### Help Output
 
-### for calendar class
-first_of_month  = Date.new(options[:year], options[:month])
-
-last_of_month   = if options[:month] == 12
-  Date.new(options[:year] + 1, 1) - 1
-else
-  Date.new(options[:year], options[:month] + 1) - 1
-end
-
-weeks_in_month = ((last_of_month.mday + first_of_month.wday - 1) / 7) + 1
-### END for calendar class
-
-### Color Magic Numbers
-color_of_date = "d9d9d9"
-color_of_weekday_name = "000000" 
-color_of_other_month_background = "f0f0f0"
-### END Colors Magic Numbers
-
-
-pdf = Prawn::Document.new(:page_size => options[:page_size],
-                          :page_layout => :landscape)
-
-pdf.define_grid(:columns => 7, :rows => weeks_in_month + 1, :gutter => 0)
-pdf.font("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf")
-
-box_height = 0
-pdf.grid(1, 1).bounding_box do
-  box_height = pdf.bounds.top
-end
-
-pdf.font_size(box_height * 0.75)
-
-pdf.grid([0, 0], [0, 6]).bounding_box do
-  pdf.text first_of_month.strftime("%B %Y")
-end
-
-date = first_of_month
-if date.wday > 0
-  date -= date.wday
-end
-
-until date > last_of_month and date.wday == 0
-  col = date.wday
-  row ||= 0
-  if date.month == options[:month]
-    row = (date.mday + first_of_month.wday - 1) / 7
-  end
-
-  pdf.grid(row + 1, col).bounding_box do
-    if row == 0
-      pdf.float do
-        pdf.move_up 20
-        pdf.font_size(20) { pdf.text date.strftime("%a"), :align => :right, :color => color_of_weekday_name }
-      end
-    end
-
-    if date.month != options[:month]
-      pdf.fill_color color_of_other_month_background 
-      pdf.fill_rectangle [0, pdf.bounds.top], pdf.bounds.right, pdf.bounds.top
-    end
-
-    pdf.stroke_bounds
-
-    pdf.move_down 5
-    pdf.text date.mday.to_s, :align => :right, :color => color_of_date
-  end
-
-  date += 1
-end
-
-pdf.render_file(first_of_month.strftime("%Y-%m-#{options[:page_size].downcase}.pdf"))
+### Execution
+calendar = Calendar.new(options[:year],
+                        options[:month],
+                        options[:page_size])
+calendar.render_file(options[:filename])
+### END Execution
