@@ -37,7 +37,13 @@ class Calendar
   end
 
   def cell_row(date)
-    (date.mday + first_of_month.wday - 1) / 7
+    if    date < first_of_month
+      cell_row(first_of_month)
+    elsif date > last_of_month
+      cell_row(last_of_month)
+    else
+      (date.mday + first_of_month.wday - 1) / 7
+    end
   end
 
   def cell_width
@@ -106,9 +112,40 @@ class Calendar
     ### END Dates
 
     ### Leading Dates
+    ((first_of_month.wday * -1)...0).each do |d|
+      date = first_of_month + d
+      @doc.bounding_box(cell_coords(date),
+                        :width => cell_width,
+                        :height => cell_height) do
+        @doc.fill_color GRAY
+        @doc.fill_rectangle([0, @doc.bounds.top], @doc.bounds.right, @doc.bounds.top)
+        @doc.stroke_bounds
+        @doc.move_down 5
+        @doc.text(date.mday.to_s,
+                 :size  => font_size,
+                 :align => :right,
+                 :color => WHITE)
+      end
+    end
     ### END Leading Dates
     
     ### Trailing Dates
+    #!! DUPLICATION
+    (1..(6 - last_of_month.wday)).each do |d|
+      date = last_of_month + d
+      @doc.bounding_box(cell_coords(date),
+                        :width => cell_width,
+                        :height => cell_height) do
+        @doc.fill_color GRAY
+        @doc.fill_rectangle([0, @doc.bounds.top], @doc.bounds.right, @doc.bounds.top)
+        @doc.stroke_bounds
+        @doc.move_down 5
+        @doc.text(date.mday.to_s,
+                 :size  => font_size,
+                 :align => :right,
+                 :color => WHITE)
+      end
+    end
     ### END Trailing Dates
 
     @doc.render_file(filename)
