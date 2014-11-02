@@ -6,7 +6,7 @@ require "prawn"
 require "prawn/measurement_extensions"
 
 ### About Script
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 APPNAME = File.basename(__FILE__)
 ### END About Script
 
@@ -196,6 +196,15 @@ class Calendar
       end
     end
     ### END Trailing Dates
+
+    ### Version
+    @doc.canvas do
+      @doc.fill_color BLACK
+      @doc.font_size(6) do
+        @doc.draw_text("v%s" % VERSION, :at => [@doc.bounds.right - 59, 30])
+      end
+    end
+    ### END Version
 
     @doc.render_file(filename)
     true

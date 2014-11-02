@@ -13,3 +13,4 @@
   * It uses OptionParser.
   * One of the options runs Minitest tests.
   * The calendar code is in a class.
+  * The code has some comments.

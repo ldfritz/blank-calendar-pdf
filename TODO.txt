@@ -10,7 +10,3 @@
   - [X] Comment the code.
   - [X] Add Minitest.
   - [X] Add OptionParser.
-
-- v0.3.0 [0/1]
-
-  - [ ] ...
