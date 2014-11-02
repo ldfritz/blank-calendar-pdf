@@ -1,12 +1,12 @@
 # TODO
 
-## v0.2.0
+- v0.1.0 [1/1]
 
-* Organize the code.
-* Comment the code.
-* Add Minitest.
-* Add OptionParser.
+  - [X] Functioning example.
 
-## v0.3.0
+- v0.2.0 [4/4]
 
-* ...
+  - [X] Organize the code.
+  - [X] Comment the code.
+  - [X] Add Minitest.
+  - [X] Add OptionParser.
