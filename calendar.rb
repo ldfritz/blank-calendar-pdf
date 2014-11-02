@@ -11,13 +11,25 @@ APPNAME = File.basename(__FILE__)
 ### END About Script
 
 ### Calendar Logic
+
+# Public: Methods that calculate the dates to be printed and create the
+# calendar PDF using Prawn.
 class Calendar
 
+  # Public: Font used on the calendar.
   FONT  = "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSansMono.ttf"
+  # Public: Color of black text.
   BLACK = "000000"
+  # Public: Color of gray text.
   GRAY  = "d9d9d9"
+  # Public: Color of white text.
   WHITE = "ffffff"
 
+  # Public: Initialize a Calendar.
+  #
+  # year      - An Integer of the year.
+  # month     - An Integer of the year.
+  # page_size - A String of the page size (LETTER, LEGAL, or TABLOID).
   def initialize(year, month, page_size)
     @year  = year
     @month = month
@@ -26,16 +38,30 @@ class Calendar
     @doc.font FONT
   end
 
+  # Public: Given a Date return its bounding box coordinates.
+  #
+  # date - A Date to be positioned.
+  #
+  # Returns an Array of Floats telling the x and y coordinates for
+  # the bounding box, in pixels.
   def cell_coords(date)
     x = cell_width * date.wday
     y = (@doc.bounds.top - 1.in) - (cell_height * cell_row(date))
     [x, y]
   end
 
+  # Public: Calculate the height for the date bounding boxes.
+  #
+  # Returns a Float of the height of the date bounding boxes in pixels.
   def cell_height
     @cell_height ||= (@doc.bounds.top - 1.in) / number_of_weeks
   end
 
+  # Public: Figure out which week of the month a date is.
+  #
+  # date - A Date that would be printed on this calendar.
+  #
+  # Returns an Integer of which week a date is.
   def cell_row(date)
     if    date < first_of_month
       cell_row(first_of_month)
@@ -46,32 +72,55 @@ class Calendar
     end
   end
 
+  # Public: Calculate the width for the date bounding boxes.
+  #
+  # Returns a Float of the width of the date bounding boxes in pixels.
   def cell_width
     @cell_width ||= @doc.bounds.right / 7
   end
 
+  # Public: Return the date for the first of the month.
+  #
+  # Returns a Date of the first of the month.
   def first_of_month
     @first_of_month ||= Date.new(@year, @month)
   end
 
+  # Public: Figure out the largest font size that can be used for the
+  # date text.
+  #
+  # Returns a Float of the size of the font for the calendar dates.
   def font_size
     @font_size ||= [cell_height, cell_width].sort.shift * 0.8
   end
 
+  # Public: Return the date for the last of the month.
+  #
+  # Returns a Date of the last of the month.
   def last_of_month
+    # See if the month is December
     @last_of_month ||= if @month == 12
-      # The day before the first of next year.
+      # If so, return the day before the first of next year.
       Date.new(@year + 1, 1         ) - 1
     else
-      # The day before the first of next month.
+      # If not, return the day before the first of next month.
       Date.new(@year    , @month + 1) - 1
     end
   end
 
+  # Public: Return how many weeks are in the month.  The week starts on
+  # Sunday.
+  #
+  # Returns an Integer of how many weeks are in this month.
   def number_of_weeks
     @number_of_weeks ||= cell_row(last_of_month) + 1
   end
 
+  # Public: Make a PDF calendar.
+  #
+  # filename - A String of the filename of where to write the calendar.
+  #
+  # Returns True if successful.
   def render_file(filename)
     ### Title
     @doc.bounding_box([0, @doc.bounds.top],
@@ -149,6 +198,7 @@ class Calendar
     ### END Trailing Dates
 
     @doc.render_file(filename)
+    true
   end
 end
 
@@ -167,7 +217,7 @@ optparser = OptionParser.new do |opts|
     options[:run_tests] = true
   end
 
-  opts.on("-V", "--version", "Print version and exit.") do
+  opts.on("--version", "Print version and exit.") do
     puts "#{APPNAME} #{VERSION}"
     exit
   end
@@ -178,7 +228,7 @@ optparser.parse!
 ### Tests
 if options[:run_tests]
   require "minitest/autorun"
-  class CalendarTests < Minitest::Test
+  class CalendarTests < Minitest::Test # :nodoc: all
     def test_first_of_month
       assert(Calendar.new(2014, 11).first_of_month == Date.new(2014, 11, 1))
     end
@@ -216,7 +266,7 @@ if options[:show_help]
   puts optparser
   exit
 end
-### Help Output
+### END Help Output
 
 ### Execution
 calendar = Calendar.new(options[:year],

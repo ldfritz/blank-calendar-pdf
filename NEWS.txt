@@ -1,8 +1,15 @@
 # NEWS
 
-## v0.1.0
+- v0.1.0
 
-* It basically works.
-* It uses Prawn, the PDF library.
-* The code is ugly, and will be improved.
-* The calendar is simple, and may be improved.
+  * It basically works.
+  * It uses Prawn, the PDF library.
+  * The code is ugly, and will be improved.
+  * The calendar is simple, and may be improved.
+
+- v0.2.0
+
+  * The script continues to be a single file.
+  * It uses OptionParser.
+  * One of the options runs Minitest tests.
+  * The calendar code is in a class.
