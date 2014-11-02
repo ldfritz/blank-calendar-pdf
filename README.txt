@@ -2,9 +2,4 @@
 
 Generate a PDF calendar of the given month.
 
-## Requirements
-
-* Ruby
-* Prawn
-* OptionParser
-* Minitest
+This is a Ruby script that uses the Prawn library.
