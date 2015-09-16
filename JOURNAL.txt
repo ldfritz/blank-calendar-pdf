@@ -1,0 +1,7 @@
+# Journal
+
+## 2015-09-16 10:00
+
+I uploaded the repo to Github finally.  Once I had it posted, though, I realized how woefully inadequate the documentation was.  So, I tweaked it slightly and merged all outstanding branches.  I can work on more revisions later.
+
+Oh, and I added an MIT license.

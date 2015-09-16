@@ -11,7 +11,8 @@ Examples of the output can be seen in [examples/](https://github.com/ldfritz/bla
 * Clone the repo.
 * Install the required gems. `bundle install`
 * Run `calendar.rb`, providing the year, month, and optionally the paper size.
-  Example: `./calendar.rb 2015 09` or `./calendar.rb 2015 10 tabloid`
+  * `./calendar.rb 2015 09` generates [2015-09-letter.pdf](https://github.com/ldfritz/blank-calendar-pdf/blob/master/examples/2015-09-letter.pdf).
+  * `./calendar.rb 2015 10 tabloid` generates [2015-10-tabloid.pdf](https://github.com/ldfritz/blank-calendar-pdf/blob/master/examples/2015-10-tabloid.pdf).
 
 ## Dependencies
 
